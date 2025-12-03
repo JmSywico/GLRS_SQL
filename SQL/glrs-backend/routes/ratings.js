@@ -1,7 +1,28 @@
 import express from 'express';
 import pool from '../db.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
+
+// IMPORTANT: Specific routes MUST come BEFORE generic routes
+
+// Get all ratings (for admin) - MUST be before /:gameId
+router.get('/all', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT r.rating_id, r.user_id, r.game_id, r.rating, r.review_text,
+              u.username, g.title as game_title
+       FROM ratings r
+       JOIN users u ON r.user_id = u.user_id
+       JOIN games g ON r.game_id = g.game_id
+       ORDER BY r.rating_id DESC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching all ratings:', error);
+    res.status(500).json({ error: 'Failed to fetch ratings' });
+  }
+});
 
 // Get all ratings for a specific game
 router.get('/:gameId', async (req, res) => {
@@ -116,6 +137,27 @@ router.delete('/:ratingId', async (req, res) => {
   } catch (err) {
     console.error('Error deleting rating:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Delete rating
+router.delete('/admin/:ratingId', requireAdmin, async (req, res) => {
+  try {
+    const { ratingId } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM ratings WHERE rating_id = $1 RETURNING *',
+      [ratingId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Rating not found' });
+    }
+
+    res.json({ message: 'Rating deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting rating:', error);
+    res.status(500).json({ error: 'Failed to delete rating' });
   }
 });
 

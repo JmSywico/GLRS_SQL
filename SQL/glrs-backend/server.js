@@ -10,6 +10,7 @@ import ratingsRouter from './routes/ratings.js';
 import recommendationsRouter from './routes/recommendations.js';
 import libraryRouter from './routes/library.js';
 import playSessionsRouter from './routes/playSessions.js';
+import developersRoutes from './routes/developers.js';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/ratings', ratingsRouter);
 app.use('/recommendations', recommendationsRouter);
 app.use('/library', libraryRouter);
 app.use('/play-sessions', playSessionsRouter);
+app.use('/developers', developersRoutes);
 
 const PORT = process.env.PORT || 4000;
 

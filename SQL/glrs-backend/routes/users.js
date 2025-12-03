@@ -1,5 +1,6 @@
 import express from 'express';
 import pool from '../db.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
@@ -96,18 +97,18 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Get all users (for admin purposes, optional)
+// Get all users (for admin)
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.user_id, u.username, u.email, r.role_name
        FROM users u
        JOIN roles r ON u.role_id = r.role_id
-       ORDER BY u.username`
+       ORDER BY u.user_id`
     );
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -133,6 +134,36 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Admin: Delete user
+router.delete('/admin/:userId', requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log('Deleting user:', userId);
+
+    // Delete related data first (foreign key constraints)
+    await pool.query('DELETE FROM ratings WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM user_library WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM play_sessions WHERE user_id = $1', [userId]);
+
+    // Now delete the user
+    const result = await pool.query(
+      'DELETE FROM users WHERE user_id = $1 RETURNING *',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('User deleted successfully:', result.rows[0]);
+    res.json({ message: 'User deleted successfully', user: result.rows[0] });
+  } catch (error) {
+    console.error('Error deleting user:', error.message, error.stack);
+    res.status(500).json({ error: 'Failed to delete user', details: error.message });
   }
 });
 
