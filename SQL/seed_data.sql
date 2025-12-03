@@ -179,10 +179,6 @@ ON CONFLICT DO NOTHING;
 
 -- ----------------------------
 -- GAME_GENRES (map games -> genres)
--- Use genre ids from insertion order:
--- 1:Action, 2:Adventure, 3:RPG, 4:Shooter, 5:Open World, 6:Strategy,
--- 7:Puzzle, 8:Horror, 9:Platformer, 10:Simulation, 11:Sports,
--- 12:Roguelike, 13:MMO, 14:Stealth, 15:Survival
 -- ----------------------------
 INSERT INTO game_genres (game_id, genre_id) VALUES
 ('G001', 3), ('G001', 5),

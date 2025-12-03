@@ -1,5 +1,6 @@
 import express from 'express';
 import pool from '../db.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
@@ -157,6 +158,86 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching game:', error);
     res.status(500).json({ error: 'Failed to fetch game details' });
+  }
+});
+
+// Admin: Add new game
+router.post('/admin/add', requireAdmin, async (req, res) => {
+  try {
+    const { title, developer_id, release_year, description } = req.body;
+
+    if (!title || !developer_id) {
+      return res.status(400).json({ error: 'Title and developer are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO games (title, developer_id, release_year, description)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [title, developer_id, release_year, description]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error adding game:', error);
+    res.status(500).json({ error: 'Failed to add game' });
+  }
+});
+
+// Admin: Update game
+router.put('/admin/:gameId', requireAdmin, async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const { title, developer_id, release_year, description } = req.body;
+
+    const result = await pool.query(
+      `UPDATE games 
+       SET title = $1, developer_id = $2, release_year = $3, description = $4
+       WHERE game_id = $5
+       RETURNING *`,
+      [title, developer_id, release_year, description, gameId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating game:', error);
+    res.status(500).json({ error: 'Failed to update game' });
+  }
+});
+
+// Admin: Delete game
+router.delete('/admin/:gameId', requireAdmin, async (req, res) => {
+  try {
+    const { gameId } = req.params;
+
+    console.log('Deleting game:', gameId);
+
+    // Delete related data first (foreign key constraints)
+    await pool.query('DELETE FROM ratings WHERE game_id = $1', [gameId]);
+    await pool.query('DELETE FROM user_library WHERE game_id = $1', [gameId]);
+    await pool.query('DELETE FROM play_sessions WHERE game_id = $1', [gameId]);
+    await pool.query('DELETE FROM game_genres WHERE game_id = $1', [gameId]);
+    await pool.query('DELETE FROM game_platforms WHERE game_id = $1', [gameId]);
+
+    // Now delete the game
+    const result = await pool.query(
+      'DELETE FROM games WHERE game_id = $1 RETURNING *',
+      [gameId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    console.log('Game deleted successfully:', result.rows[0]);
+    res.json({ message: 'Game deleted successfully', game: result.rows[0] });
+  } catch (error) {
+    console.error('Error deleting game:', error.message, error.stack);
+    res.status(500).json({ error: 'Failed to delete game', details: error.message });
   }
 });
 
