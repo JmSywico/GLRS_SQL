@@ -1,5 +1,5 @@
 -- ====================================================
--- seed_data.sql (Big but Balanced) for GLRS
+-- seed_data.sql (Big but Balanced) for QUEST
 -- 60 games (G001..G060), 30 developers, 15 genres, 10 platforms
 -- ~12 users, ~45 ratings, ~90 play sessions, flags, moderation logs, recs
 -- ====================================================
@@ -233,8 +233,8 @@ INSERT INTO game_genres (game_id, genre_id) VALUES
 ('G046', 10),
 ('G047', 6),
 ('G048', 1), ('G048', 2),
-('G049', 3), ('G049', 2),
-('G050', 5), ('G050', 15),
+('G049', 1),
+('G050', 1), ('G050', 2),
 ('G051', 9), ('G051', 12),
 ('G052', 2), ('G052', 5), ('G052', 3),
 ('G053', 12), ('G053', 4),

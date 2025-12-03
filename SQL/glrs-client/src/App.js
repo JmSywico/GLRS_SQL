@@ -41,7 +41,7 @@ function App() {
       <div className="app-container">
         <nav className="navbar">
           <div className="nav-content">
-            <h2 className="nav-logo">GLRS</h2>
+            <h2 className="nav-logo">QUEST</h2>
             <div className="nav-links">
               <a href="/">All Games</a>
               <a href="/library">My Library</a>

@@ -1,8 +1,7 @@
--- ===========================================================
--- createDB.sql
--- Complete PostgreSQL DDL for GLRS
--- Digital Game Library & Recommendation System
--- ===========================================================
+-- ====================================================
+-- createDB.sql for QUEST
+-- Quest Unit Engagement Status Tracking System
+-- ====================================================
 
 -- =======================
 -- ROLES
