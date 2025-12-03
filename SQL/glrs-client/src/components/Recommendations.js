@@ -7,20 +7,27 @@ export default function Recommendations({ userId }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/recommendations/user/${userId}?limit=12`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch recommendations');
-        return res.json();
-      })
-      .then(data => {
+    const fetchRecommendations = async () => {
+      try {
+        const response = await fetch(`http://localhost:4000/recommendations/${userId}`);
+        
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('Response:', text);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
         setRecommendations(data);
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        setError('Failed to fetch recommendations');
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setError(err.message);
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchRecommendations();
   }, [userId]);
 
   if (loading) {

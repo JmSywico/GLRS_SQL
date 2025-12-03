@@ -3,52 +3,57 @@ import pool from '../db.js';
 
 const router = express.Router();
 
-// Get all play sessions for a user's game
-router.get('/user/:userId/game/:gameId', async (req, res) => {
-  try {
-    const { userId, gameId } = req.params;
-    
-    const result = await pool.query(`
-      SELECT 
-        ps.playtime_id,
-        ps.play_start,
-        ps.play_end,
-        ps.total_minutes,
-        COALESCE(ps.total_minutes / 60.0, 0) AS duration_hours,
-        g.title AS game_title
-      FROM play_sessions ps
-      JOIN games g ON ps.game_id = g.game_id
-      WHERE ps.user_id = $1 AND ps.game_id = $2
-      ORDER BY ps.play_start DESC
-    `, [userId, gameId]);
-    
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching play sessions:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get active session for a user's game
+// Get active session for a user and game
 router.get('/user/:userId/game/:gameId/active', async (req, res) => {
   try {
     const { userId, gameId } = req.params;
-    
-    const result = await pool.query(`
-      SELECT 
-        playtime_id,
-        play_start,
-        game_id,
-        user_id
-      FROM play_sessions
-      WHERE user_id = $1 AND game_id = $2 AND play_end IS NULL
-      LIMIT 1
-    `, [userId, gameId]);
-    
+    const result = await pool.query(
+      `SELECT * FROM play_sessions 
+       WHERE user_id = $1 AND game_id = $2 AND session_end IS NULL`,
+      [userId, gameId]
+    );
     res.json(result.rows[0] || null);
-  } catch (error) {
-    console.error('Error fetching active session:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Error fetching active session:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all sessions for a user and game
+router.get('/user/:userId/game/:gameId', async (req, res) => {
+  try {
+    const { userId, gameId } = req.params;
+    const result = await pool.query(
+      `SELECT *, 
+        EXTRACT(EPOCH FROM (session_end - session_start))/3600 as duration_hours
+       FROM play_sessions 
+       WHERE user_id = $1 AND game_id = $2 
+       ORDER BY session_start DESC`,
+      [userId, gameId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching sessions:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get total stats for a user and game
+router.get('/user/:userId/game/:gameId/total', async (req, res) => {
+  try {
+    const { userId, gameId } = req.params;
+    const result = await pool.query(
+      `SELECT 
+        COALESCE(SUM(duration_minutes)/60, 0) as total_hours,
+        COUNT(*) as session_count
+       FROM play_sessions 
+       WHERE user_id = $1 AND game_id = $2 AND session_end IS NOT NULL`,
+      [userId, gameId]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching total stats:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -57,79 +62,56 @@ router.post('/start', async (req, res) => {
   try {
     const { user_id, game_id } = req.body;
     
-    // Check if there's already an active session
-    const activeCheck = await pool.query(`
-      SELECT playtime_id FROM play_sessions
-      WHERE user_id = $1 AND game_id = $2 AND play_end IS NULL
-    `, [user_id, game_id]);
+    // Check for existing active session
+    const activeCheck = await pool.query(
+      `SELECT * FROM play_sessions WHERE user_id = $1 AND game_id = $2 AND session_end IS NULL`,
+      [user_id, game_id]
+    );
     
-    if (activeCheck.rowCount > 0) {
-      return res.status(400).json({ error: 'Session already active for this game' });
+    if (activeCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'Active session already exists' });
     }
     
-    // Generate playtime_id (PT + timestamp)
-    const playtime_id = 'PT' + Date.now();
+    // Generate new session_id
+    const countResult = await pool.query('SELECT COUNT(*) FROM play_sessions');
+    const newId = `P${String(parseInt(countResult.rows[0].count) + 1).padStart(3, '0')}`;
     
-    const result = await pool.query(`
-      INSERT INTO play_sessions (playtime_id, user_id, game_id, play_start)
-      VALUES ($1, $2, $3, NOW())
-      RETURNING playtime_id, play_start, user_id, game_id
-    `, [playtime_id, user_id, game_id]);
+    const result = await pool.query(
+      `INSERT INTO play_sessions (session_id, user_id, game_id, session_start) 
+       VALUES ($1, $2, $3, NOW()) 
+       RETURNING *`,
+      [newId, user_id, game_id]
+    );
     
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error starting session:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Error starting session:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
 // End a play session
 router.post('/end', async (req, res) => {
   try {
-    const { playtime_id } = req.body;
+    const { session_id } = req.body;
     
-    const result = await pool.query(`
-      UPDATE play_sessions
-      SET 
-        play_end = NOW(),
-        total_minutes = EXTRACT(EPOCH FROM (NOW() - play_start)) / 60
-      WHERE playtime_id = $1 AND play_end IS NULL
-      RETURNING 
-        playtime_id,
-        play_start,
-        play_end,
-        total_minutes,
-        total_minutes / 60.0 AS duration_hours
-    `, [playtime_id]);
+    const result = await pool.query(
+      `UPDATE play_sessions 
+       SET session_end = NOW(),
+           duration_minutes = EXTRACT(EPOCH FROM (NOW() - session_start))/60
+       WHERE session_id = $1 AND session_end IS NULL 
+       RETURNING *`,
+      [session_id]
+    );
     
-    if (result.rowCount === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Active session not found' });
     }
     
     res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error ending session:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get total play time for a user's game
-router.get('/user/:userId/game/:gameId/total', async (req, res) => {
-  try {
-    const { userId, gameId } = req.params;
-    
-    const result = await pool.query(`
-      SELECT 
-        COALESCE(SUM(total_minutes) / 60.0, 0) AS total_hours,
-        COUNT(*) AS session_count
-      FROM play_sessions
-      WHERE user_id = $1 AND game_id = $2 AND play_end IS NOT NULL
-    `, [userId, gameId]);
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching total play time:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Error ending session:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

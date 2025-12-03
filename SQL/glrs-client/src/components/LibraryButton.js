@@ -8,6 +8,13 @@ export default function LibraryButton({ userId, gameId, size = 'normal', onUpdat
   const checkLibraryStatus = useCallback(async () => {
     try {
       const res = await fetch(`http://localhost:4000/library/check/${userId}/${gameId}`);
+      
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Server response:', text);
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
       setLibraryStatus(data);
       setLoading(false);

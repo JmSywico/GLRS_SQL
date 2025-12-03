@@ -1,121 +1,145 @@
-import { useState } from "react";
+import { useState } from 'react';
 
-export default function RatingForm({ gameId, userId, onSubmit }) {
-  const [value, setValue] = useState(5);
-  const [text, setText] = useState("");
+export default function RatingForm({ userId, gameId, existingRating, onSubmit, onCancel }) {
+  const [rating, setRating] = useState(existingRating?.rating || 0);
+  const [reviewText, setReviewText] = useState(existingRating?.review_text || '');
   const [submitting, setSubmitting] = useState(false);
 
-  const submit = async () => {
-    if (!text.trim()) {
-      alert("Please write a review");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (rating === 0) {
+      alert('Please select a rating');
       return;
     }
 
     setSubmitting(true);
-    const payload = {
-      rating_id: 'R' + Date.now(),
-      user_id: userId,
-      game_id: gameId,
-      rating_value: value,
-      rating_text: text
-    };
 
     try {
-      await fetch("http://localhost:4000/ratings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+      const res = await fetch('http://localhost:4000/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          game_id: gameId,
+          rating: Number(rating), // Convert to number
+          review_text: reviewText || null // Send null if empty
+        })
       });
 
-      setText("");
-      setValue(5);
-      onSubmit();
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to submit rating');
+      }
+
+      const data = await res.json();
+      console.log('Rating submitted:', data);
+      
+      // Call the parent's onSubmit callback to refresh the ratings
+      if (onSubmit) {
+        onSubmit();
+      }
     } catch (err) {
-      console.error(err);
-      alert("Failed to submit review");
+      console.error('Error submitting rating:', err);
+      alert('Failed to submit rating: ' + err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div style={{
-      borderTop: '1px solid var(--border-color)',
-      paddingTop: '1.5rem',
-      marginTop: '1.5rem'
+    <form onSubmit={handleSubmit} style={{
+      padding: '1.5rem',
+      backgroundColor: '#f9f9f9',
+      borderRadius: '8px',
+      marginBottom: '1.5rem',
+      border: '1px solid #ddd'
     }}>
-      <h4 style={{ marginBottom: '1rem' }}>✍️ Write a Review</h4>
-      
+      <h3 style={{ marginBottom: '1rem' }}>
+        {existingRating ? 'Edit Your Review' : 'Write a Review'}
+      </h3>
+
       <div style={{ marginBottom: '1rem' }}>
-        <label style={{ 
-          display: 'block', 
-          marginBottom: '0.5rem',
-          color: 'var(--text-secondary)',
-          fontSize: '0.9rem'
-        }}>
-          Your Rating
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+          Rating: {rating}/5
         </label>
-        <select 
-          value={value} 
-          onChange={e => setValue(Number(e.target.value))}
-          style={{
-            padding: '0.5rem',
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            cursor: 'pointer'
-          }}
-        >
-          {[5, 4, 3, 2, 1].map(n => (
-            <option key={n} value={n}>
-              {'★'.repeat(n) + '☆'.repeat(5-n)} ({n}.0)
-            </option>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)} // This sets as number
+              style={{
+                fontSize: '2rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: star <= rating ? '#ffa500' : '#ddd',
+                padding: '0',
+                transition: 'color 0.2s'
+              }}
+            >
+              ★
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        <label style={{ 
-          display: 'block', 
-          marginBottom: '0.5rem',
-          color: 'var(--text-secondary)',
-          fontSize: '0.9rem'
-        }}>
-          Your Review
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+          Review (Optional):
         </label>
         <textarea
+          value={reviewText}
+          onChange={(e) => setReviewText(e.target.value)}
           placeholder="Share your thoughts about this game..."
-          value={text}
-          onChange={e => setText(e.target.value)}
-          rows={4}
+          rows="5"
           style={{
             width: '100%',
             padding: '0.75rem',
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            fontSize: '0.95rem',
-            lineHeight: '1.5',
-            resize: 'vertical',
-            fontFamily: 'inherit'
+            borderRadius: '5px',
+            border: '1px solid #ddd',
+            fontSize: '1rem',
+            fontFamily: 'inherit',
+            resize: 'vertical'
           }}
         />
       </div>
 
-      <button 
-        onClick={submit}
-        disabled={submitting}
-        className="btn btn-primary"
-        style={{
-          opacity: submitting ? 0.6 : 1,
-          cursor: submitting ? 'not-allowed' : 'pointer'
-        }}
-      >
-        {submitting ? 'Submitting...' : 'Submit Review'}
-      </button>
-    </div>
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <button
+          type="submit"
+          disabled={submitting}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: submitting ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+            opacity: submitting ? 0.6 : 1
+          }}
+        >
+          {submitting ? 'Submitting...' : 'Submit Review'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={submitting}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: submitting ? 'not-allowed' : 'pointer',
+            fontSize: '1rem'
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

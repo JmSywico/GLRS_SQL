@@ -1,92 +1,100 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from 'react';
+import RatingForm from './RatingForm';
 
-export default function Ratings({ gameId }) {
+export default function Ratings({ gameId, userId }) {
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [userRating, setUserRating] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => {
-    fetch(`http://localhost:4000/ratings/${gameId}`)
-      .then(res => res.json())
-      .then(data => {
-        setReviews(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/ratings/${gameId}`);
+      const data = await res.json();
+      setReviews(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      setReviews([]);
+    }
   }, [gameId]);
 
-  if (loading) return <p style={{ color: 'var(--text-secondary)' }}>Loading reviews...</p>;
+  const fetchUserRating = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`http://localhost:4000/ratings/${gameId}/${userId}`);
+      const data = await res.json();
+      setUserRating(data);
+    } catch (err) {
+      console.error('Error fetching user rating:', err);
+    }
+  }, [gameId, userId]);
+
+  useEffect(() => {
+    fetchReviews();
+    fetchUserRating();
+  }, [fetchReviews, fetchUserRating]);
+
+  const handleRatingSubmit = () => {
+    setShowForm(false);
+    fetchReviews();
+    fetchUserRating();
+  };
+
+  const averageRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : 'N/A';
 
   return (
-    <div style={{
-      borderTop: '1px solid var(--border-color)',
-      paddingTop: '1.5rem',
-      marginTop: '1.5rem'
-    }}>
-      <h3 style={{ marginBottom: '1rem' }}>💬 User Reviews ({reviews.length})</h3>
-
-      {reviews.length === 0 ? (
-        <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-          No reviews yet. Be the first to share your thoughts!
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {reviews.map(r => (
-            <div 
-              key={r.rating_id} 
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '1rem'
-              }}
-            >
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '0.75rem'
-              }}>
-                <div>
-                  <strong style={{ color: 'var(--text-primary)' }}>{r.username}</strong>
-                  <span style={{ 
-                    marginLeft: '0.5rem',
-                    color: 'var(--rating-star)',
-                    fontSize: '1.1rem'
-                  }}>
-                    {'★'.repeat(Math.round(r.rating_value))}
-                    {'☆'.repeat(5 - Math.round(r.rating_value))}
-                  </span>
-                  <span style={{ 
-                    marginLeft: '0.5rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: 'var(--accent-primary)'
-                  }}>
-                    {Number(r.rating_value).toFixed(1)}
-                  </span>
-                </div>
-                <span style={{ 
-                  fontSize: '0.85rem', 
-                  color: 'var(--text-muted)' 
-                }}>
-                  {new Date(r.rating_date).toLocaleDateString()}
-                </span>
-              </div>
-              {r.rating_text && (
-                <p style={{ 
-                  color: 'var(--text-secondary)', 
-                  lineHeight: '1.6',
-                  margin: 0
-                }}>
-                  {r.rating_text}
-                </p>
-              )}
-            </div>
-          ))}
+    <div style={{ marginTop: '2rem' }}>
+      <h2>Ratings & Reviews</h2>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '8px', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+          <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#ffa500' }}>{averageRating}</span>
+          <span style={{ fontSize: '1.2rem', color: '#666' }}>/ 5.0</span>
+          <span style={{ fontSize: '0.9rem', color: '#888' }}>({reviews.length} reviews)</span>
         </div>
+
+        {userId && (
+          <button 
+            style={{ padding: '0.75rem 1.5rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '1rem' }}
+            onClick={() => setShowForm(!showForm)}
+          >
+            {userRating ? 'Edit Your Review' : 'Write a Review'}
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <RatingForm
+          userId={userId}
+          gameId={gameId}
+          existingRating={userRating}
+          onSubmit={handleRatingSubmit}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {reviews.map((review) => (
+          <div key={review.rating_id} style={{ padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontWeight: 'bold', color: '#333' }}>{review.username}</span>
+              <span style={{ color: '#ffa500', fontWeight: 'bold' }}>⭐ {review.rating}/5</span>
+            </div>
+            {review.review_text && (
+              <p style={{ margin: '0.75rem 0', color: '#555', lineHeight: '1.6' }}>{review.review_text}</p>
+            )}
+            <span style={{ fontSize: '0.85rem', color: '#888' }}>
+              {new Date(review.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {reviews.length === 0 && (
+        <p style={{ textAlign: 'center', color: '#999', padding: '2rem', fontStyle: 'italic' }}>
+          No reviews yet. Be the first to review this game!
+        </p>
       )}
     </div>
   );

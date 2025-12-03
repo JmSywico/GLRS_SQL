@@ -11,7 +11,11 @@ export default function PlayTime({ userId, gameId, gameName }) {
   const fetchActiveSession = useCallback(async () => {
     try {
       const res = await fetch(`http://localhost:4000/play-sessions/user/${userId}/game/${gameId}/active`);
-      if (!res.ok) throw new Error('Failed to fetch active session');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Active session response:', text);
+        throw new Error('Failed to fetch active session');
+      }
       const data = await res.json();
       setActiveSession(data);
     } catch (err) {
@@ -22,7 +26,11 @@ export default function PlayTime({ userId, gameId, gameName }) {
   const fetchSessions = useCallback(async () => {
     try {
       const res = await fetch(`http://localhost:4000/play-sessions/user/${userId}/game/${gameId}`);
-      if (!res.ok) throw new Error('Failed to fetch sessions');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Sessions response:', text);
+        throw new Error('Failed to fetch sessions');
+      }
       const data = await res.json();
       setSessions(Array.isArray(data) ? data : []);
       setLoading(false);
@@ -57,7 +65,7 @@ export default function PlayTime({ userId, gameId, gameName }) {
     let interval;
     if (activeSession) {
       interval = setInterval(() => {
-        const start = new Date(activeSession.play_start);
+        const start = new Date(activeSession.session_start);
         const now = new Date();
         const diff = (now - start) / 1000 / 60 / 60;
         setElapsedTime(diff);
@@ -93,10 +101,14 @@ export default function PlayTime({ userId, gameId, gameName }) {
       const res = await fetch('http://localhost:4000/play-sessions/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playtime_id: activeSession.playtime_id })
+        body: JSON.stringify({ session_id: activeSession.session_id })
       });
       
-      if (!res.ok) throw new Error('Failed to end session');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('End session error:', errorText);
+        throw new Error('Failed to end session');
+      }
       
       setActiveSession(null);
       setElapsedTime(0);
@@ -208,7 +220,7 @@ export default function PlayTime({ userId, gameId, gameName }) {
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {sessions.map((session) => (
               <div 
-                key={session.playtime_id}
+                key={session.session_id}
                 style={{
                   padding: '0.75rem',
                   marginBottom: '0.5rem',
@@ -222,11 +234,11 @@ export default function PlayTime({ userId, gameId, gameName }) {
               >
                 <div>
                   <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                    {formatDate(session.play_start)}
+                    {formatDate(session.session_start)}
                   </div>
-                  {session.play_end && (
+                  {session.session_end && (
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      to {formatDate(session.play_end)}
+                      to {formatDate(session.session_end)}
                     </div>
                   )}
                 </div>
