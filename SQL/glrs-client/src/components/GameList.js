@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
 import LibraryButton from './LibraryButton';
+import Filters from './Filters';
 
 export default function GameList({ currentUserId }) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({ genre: '', platform: '' });
+
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(newFilters);
+  }, []);
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -17,15 +23,29 @@ export default function GameList({ currentUserId }) {
         if (searchTerm) {
           params.append('search', searchTerm);
         }
+        if (filters.genre) {
+          params.append('genre', filters.genre);
+        }
+        if (filters.platform) {
+          params.append('platform', filters.platform);
+        }
 
         const url = `http://localhost:4000/games${params.toString() ? '?' + params.toString() : ''}`;
         
         const res = await fetch(url);
         const data = await res.json();
-        setGames(data);
+        
+        // Add validation to ensure data is an array
+        if (Array.isArray(data)) {
+          setGames(data);
+        } else {
+          console.error('Expected array but got:', data);
+          setGames([]);
+        }
         setLoading(false);
       } catch (err) {
-        console.error(err);
+        console.error('Fetch error:', err);
+        setGames([]);
         setLoading(false);
       }
     };
@@ -35,7 +55,7 @@ export default function GameList({ currentUserId }) {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, filters]);
 
   if (loading) {
     return <p style={{ textAlign: 'center', padding: '2rem' }}>Loading games...</p>;
@@ -46,6 +66,8 @@ export default function GameList({ currentUserId }) {
       <h1>All Games</h1>
       
       <SearchBar onSearch={setSearchTerm} />
+      
+      <Filters onFilterChange={handleFilterChange} />
 
       {games.length === 0 ? (
         <div style={{

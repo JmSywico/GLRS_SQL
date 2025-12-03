@@ -46,7 +46,7 @@ export default function Login({ onLogin }) {
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
     }}>
       <h1 style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
-        Login to QUEST
+        Login to Q.U.E.S.T
       </h1>
       
       <form onSubmit={handleSubmit}>

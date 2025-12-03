@@ -1,5 +1,5 @@
 -- ====================================================
--- createDB.sql for QUEST
+-- createDB.sql for Q.U.E.S.T
 -- Quest Unit Engagement Status Tracking System
 -- ====================================================
 
@@ -20,6 +20,7 @@ CREATE TABLE users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role_id INT NOT NULL REFERENCES roles(role_id),
+  bio TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   last_login TIMESTAMP WITH TIME ZONE
 );
@@ -29,7 +30,7 @@ CREATE TABLE users (
 -- =======================
 CREATE TABLE developers (
   developer_id SERIAL PRIMARY KEY,
-  name VARCHAR(150) NOT NULL UNIQUE,
+  developer_name VARCHAR(150) NOT NULL UNIQUE,
   website VARCHAR(255),
   country VARCHAR(100)
 );
@@ -52,7 +53,7 @@ CREATE TABLE games (
 -- =======================
 CREATE TABLE genres (
   genre_id SERIAL PRIMARY KEY,
-  name VARCHAR(80) NOT NULL UNIQUE
+  genre_name VARCHAR(80) NOT NULL UNIQUE
 );
 
 CREATE TABLE game_genres (
@@ -66,7 +67,7 @@ CREATE TABLE game_genres (
 -- =======================
 CREATE TABLE platforms (
   platform_id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL UNIQUE
+  platform_name VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE game_platforms (
@@ -92,13 +93,12 @@ CREATE TABLE user_library (
 -- PLAY SESSIONS
 -- =======================
 CREATE TABLE play_sessions (
-  playtime_id VARCHAR(20) PRIMARY KEY,
+  session_id VARCHAR(20) PRIMARY KEY,
   user_id VARCHAR(20) REFERENCES users(user_id) ON DELETE CASCADE,
   game_id VARCHAR(20) REFERENCES games(game_id) ON DELETE CASCADE,
-  play_start TIMESTAMP WITH TIME ZONE NOT NULL,
-  play_end TIMESTAMP WITH TIME ZONE,
-  total_minutes NUMERIC(12,2),
-  is_finished BOOLEAN DEFAULT FALSE,
+  session_start TIMESTAMP WITH TIME ZONE NOT NULL,
+  session_end TIMESTAMP WITH TIME ZONE,
+  duration_minutes NUMERIC(12,2),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -109,10 +109,8 @@ CREATE TABLE ratings (
   rating_id VARCHAR(20) PRIMARY KEY,
   user_id VARCHAR(20) REFERENCES users(user_id) ON DELETE SET NULL,
   game_id VARCHAR(20) REFERENCES games(game_id) ON DELETE CASCADE,
-  rating_value NUMERIC(3,2) CHECK (rating_value >= 0 AND rating_value <= 5),
-  rating_text TEXT,
-  rating_date DATE DEFAULT CURRENT_DATE,
-  is_visible BOOLEAN DEFAULT TRUE,
+  rating NUMERIC(3,2) CHECK (rating >= 0 AND rating <= 5),
+  review_text TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   UNIQUE (user_id, game_id)
 );
@@ -135,8 +133,8 @@ CREATE TABLE review_flags (
 -- MODERATION LOGS
 -- =======================
 CREATE TABLE moderation_logs (
-  mod_id SERIAL PRIMARY KEY,
-  admin_user VARCHAR(20) REFERENCES users(user_id),
+  log_id SERIAL PRIMARY KEY,
+  moderator_id VARCHAR(20) REFERENCES users(user_id),
   action VARCHAR(100),
   target_type VARCHAR(50),
   target_id VARCHAR(100),
@@ -153,7 +151,7 @@ CREATE TABLE recommendations (
   game_id VARCHAR(20) REFERENCES games(game_id) ON DELETE CASCADE,
   score NUMERIC(8,5),
   generated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  source VARCHAR(50)
+  reason VARCHAR(50)
 );
 
 -- =======================

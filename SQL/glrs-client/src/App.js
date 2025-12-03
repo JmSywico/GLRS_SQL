@@ -29,11 +29,7 @@ function App() {
   }, []);
 
   if (!currentUserId) {
-    return (
-      <Router>
-        <Login onLogin={handleLogin} />
-      </Router>
-    );
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
@@ -41,7 +37,7 @@ function App() {
       <div className="app-container">
         <nav className="navbar">
           <div className="nav-content">
-            <h2 className="nav-logo">QUEST</h2>
+            <h2 className="nav-logo">Q.U.E.S.T</h2>
             <div className="nav-links">
               <a href="/">All Games</a>
               <a href="/library">My Library</a>

@@ -2,6 +2,7 @@
   "name": "quest-client",
   "version": "0.1.0",
   "private": true,
+  "description": "Frontend for Q.U.E.S.T - Quest Unit Engagement Status Tracking System",
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
