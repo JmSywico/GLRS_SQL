@@ -82,7 +82,10 @@ export default function GameDetails({ currentUserId }) {
 
             {/* Library Button */}
             <div style={{ marginBottom: '1rem' }}>
-              <LibraryButton userId={currentUserId} gameId={id} />
+              <LibraryButton 
+                userId={currentUserId?.user_id || currentUserId} 
+                gameId={id} 
+              />
             </div>
 
             {game.genres && game.genres.length > 0 && (
@@ -146,7 +149,7 @@ export default function GameDetails({ currentUserId }) {
 
         <RatingForm 
           gameId={id} 
-          userId={currentUserId} 
+          userId={currentUserId?.user_id || currentUserId} 
           onSubmit={() => setRefreshRatings(prev => prev + 1)}
         />
 
@@ -154,7 +157,7 @@ export default function GameDetails({ currentUserId }) {
       </div>
 
       <PlayTime 
-        userId={currentUserId} 
+        userId={currentUserId?.user_id || currentUserId} 
         gameId={id} 
         gameName={game.title}
       />

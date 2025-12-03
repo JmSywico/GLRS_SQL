@@ -10,7 +10,9 @@ import Login from './components/Login';
 function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
 
-  const handleLogin = (userId) => {
+  const handleLogin = (userData) => {
+    // Extract user_id if userData is an object, otherwise use it directly
+    const userId = userData?.user_id || userData;
     setCurrentUserId(userId);
     localStorage.setItem('currentUserId', userId);
   };

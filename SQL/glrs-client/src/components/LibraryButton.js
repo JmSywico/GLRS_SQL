@@ -30,6 +30,8 @@ export default function LibraryButton({ userId, gameId, size = 'normal', onUpdat
 
   const addToLibrary = async (status) => {
     try {
+      console.log('Adding to library:', { user_id: userId, game_id: gameId, status }); // Debug log
+      
       const res = await fetch('http://localhost:4000/library/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

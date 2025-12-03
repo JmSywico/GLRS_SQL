@@ -6,7 +6,9 @@ const router = express.Router();
 // Add game to user's library
 router.post('/add', async (req, res) => {
   try {
-    const { user_id, game_id, status } = req.body; // status: 'owned' or 'wishlist'
+    const { user_id, game_id, status } = req.body;
+
+    console.log('Received status:', status); // Debug log
 
     // Check if already in library
     const existingEntry = await pool.query(`
@@ -20,7 +22,7 @@ router.post('/add', async (req, res) => {
 
     const result = await pool.query(`
       INSERT INTO user_library (user_id, game_id, ownership_status, date_added)
-      VALUES ($1, $2, $3, NOW())
+      VALUES ($1, $2, $3::ownership_status_t, NOW())
       RETURNING *
     `, [user_id, game_id, status]);
 
