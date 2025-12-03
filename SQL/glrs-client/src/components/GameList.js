@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
-import LibraryButton from './LibraryButton'; // ADD THIS
+import LibraryButton from './LibraryButton';
 
-export default function GameList() {
+export default function GameList({ currentUserId }) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const currentUserId = 'U004'; // ADD THIS
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -68,28 +66,29 @@ export default function GameList() {
           </p>
           <div className="games-grid">
             {games.map((game) => (
-              <Link to={`/games/${game.game_id}`} key={game.game_id} className="game-card">
-                <div className="game-cover">
-                  <div className="game-cover-placeholder">
-                    {game.title.charAt(0)}
+              <div key={game.game_id} style={{ position: 'relative' }}>
+                <Link to={`/games/${game.game_id}`} className="game-card">
+                  <div className="game-cover">
+                    <div className="game-cover-placeholder">
+                      {game.title.charAt(0)}
+                    </div>
                   </div>
-                </div>
-                <div className="game-info">
-                  <h3 className="game-title">{game.title}</h3>
-                  <p className="game-developer">{game.developer_name || 'Unknown'}</p>
-                  <div className="game-footer">
-                    <span className="game-year">{game.release_year || 'N/A'}</span>
-                    <span className="rating-stars">
-                      ★ {game.avg_rating ? Number(game.avg_rating).toFixed(1) : 'N/A'}
-                    </span>
+                  <div className="game-info">
+                    <h3 className="game-title">{game.title}</h3>
+                    <p className="game-developer">{game.developer_name || 'Unknown'}</p>
+                    <div className="game-footer">
+                      <span className="game-year">{game.release_year || 'N/A'}</span>
+                      <span className="rating-stars">
+                        ★ {game.avg_rating ? Number(game.avg_rating).toFixed(1) : 'N/A'}
+                      </span>
+                    </div>
                   </div>
-                  {/* ADD LibraryButton HERE */}
-                  <LibraryButton 
-                    gameId={game.game_id} 
-                    userId={currentUserId}
-                  />
-                </div>
-              </Link>
+                </Link>
+                <LibraryButton 
+                  gameId={game.game_id} 
+                  userId={currentUserId}
+                />
+              </div>
             ))}
           </div>
         </>

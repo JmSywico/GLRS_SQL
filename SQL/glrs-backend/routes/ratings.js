@@ -1,10 +1,10 @@
-import express from "express";
-import { pool } from "../db.js";
+import express from 'express';
+import pool from '../db.js';
 
 const router = express.Router();
 
 // GET all ratings for a game
-router.get("/:gameId", async (req, res) => {
+router.get('/:gameId', async (req, res) => {
   try {
     const query = await pool.query(`
       SELECT r.*, u.username
@@ -21,7 +21,7 @@ router.get("/:gameId", async (req, res) => {
 });
 
 // POST a new rating
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
   const { rating_id, user_id, game_id, rating_value, rating_text } = req.body;
 
   try {

@@ -1,27 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function UserLibrary({ id }) {
   const [library, setLibrary] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'owned', 'wishlist'
+  const [filter, setFilter] = useState('all');
+  const location = useLocation();
 
   const fetchLibrary = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:4000/users/${id}/library`);
+      const res = await fetch(`http://localhost:4000/library/${id}`);
       const data = await res.json();
       setLibrary(data);
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching library:', err);
       setLoading(false);
     }
   }, [id]);
 
+  // Fetch library on mount
   useEffect(() => {
     fetchLibrary();
   }, [fetchLibrary]);
+
+  // Refetch library whenever user navigates to this page
+  useEffect(() => {
+    if (location.pathname === '/library') {
+      fetchLibrary();
+    }
+  }, [location.pathname, fetchLibrary]);
 
   const filteredLibrary = library.filter(game => {
     if (filter === 'owned') return game.ownership_status === 'owned';
@@ -29,14 +38,8 @@ export default function UserLibrary({ id }) {
     return true;
   });
 
-  console.log('Library games:', filteredLibrary); // ADD THIS LINE
-
   const ownedCount = library.filter(g => g.ownership_status === 'owned').length;
   const wishlistCount = library.filter(g => g.ownership_status === 'wishlist').length;
-
-  if (loading) {
-    return <p style={{ textAlign: 'center', padding: '2rem' }}>Loading library...</p>;
-  }
 
   return (
     <div>
@@ -88,15 +91,17 @@ export default function UserLibrary({ id }) {
 
       {!loading && filteredLibrary.length === 0 && (
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
-          No games in your library yet.
+          {filter === 'all' 
+            ? 'No games in your library yet.' 
+            : `No games in your ${filter}.`}
         </p>
       )}
 
       <div className="games-grid">
-        {filteredLibrary.map((game, index) => (
+        {filteredLibrary.map((game) => (
           <Link 
             to={`/games/${game.game_id}`} 
-            key={game.game_id || index}
+            key={game.game_id}
             style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column' }}
             className="game-card"
           >

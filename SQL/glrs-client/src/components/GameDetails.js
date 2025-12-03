@@ -5,14 +5,12 @@ import RatingForm from './RatingForm';
 import Ratings from './Ratings';
 import LibraryButton from './LibraryButton';
 
-export default function GameDetails() {
+export default function GameDetails({ currentUserId }) {
   const { id } = useParams();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshRatings, setRefreshRatings] = useState(0);
-  
-  const currentUserId = 'U004';
 
   useEffect(() => {
     fetch(`http://localhost:4000/games/${id}`)
