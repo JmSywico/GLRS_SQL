@@ -1,26 +1,35 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import GameList from './components/GameList';
 import GameDetails from './components/GameDetails';
 import UserLibrary from './components/UserLibrary';
+import Recommendations from './components/Recommendations';
+import './App.css';
 
 function App() {
+  const currentUserId = 'U004'; // Hardcoded for now
+
   return (
-    <BrowserRouter>
-      <div style={{ padding: 20 }}>
-        <h1>GLRS Demo App</h1>
+    <Router>
+      <div className="app">
+        <header className="app-header">
+          <h1>🎮 GLRS - Game Library System</h1>
+          <nav>
+            <Link to="/">All Games</Link>
+            <Link to="/library">My Library</Link>
+            <Link to="/recommendations">Recommendations</Link>
+          </nav>
+        </header>
 
-        <nav style={{ marginBottom: 20 }}>
-          <Link to="/">Games</Link> |{" "}
-          <Link to="/user/U004/library">My Library</Link>
-        </nav>
-
-        <Routes>
-          <Route path="/" element={<GameList />} />
-          <Route path="/games/:id" element={<GameDetails />} />
-          <Route path="/user/:id/library" element={<UserLibrary />} />
-        </Routes>
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<GameList />} />
+            <Route path="/games/:id" element={<GameDetails />} />
+            <Route path="/library" element={<UserLibrary id={currentUserId} />} />
+            <Route path="/recommendations" element={<Recommendations userId={currentUserId} />} />
+          </Routes>
+        </main>
       </div>
-    </BrowserRouter>
+    </Router>
   );
 }
 

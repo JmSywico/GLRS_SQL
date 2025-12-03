@@ -1,56 +1,99 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import SearchBar from "./SearchBar";
-import Filters from "./Filters";
+import SearchBar from './SearchBar';
+import LibraryButton from './LibraryButton'; // ADD THIS
 
 export default function GameList() {
   const [games, setGames] = useState([]);
-  const [currentQuery, setCurrentQuery] = useState("");
-  const [currentFilters, setCurrentFilters] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const currentUserId = 'U004'; // ADD THIS
 
   useEffect(() => {
-    fetch("http://localhost:4000/games")
-      .then(res => res.json())
-      .then(setGames);
-  }, []);
+    const fetchGames = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
 
-  const searchGames = async (query, filters = {}) => {
-    const url = new URL("http://localhost:4000/games/search/filter");
-    if (query) url.searchParams.append("query", query);
-    if (filters.genre) url.searchParams.append("genre", filters.genre);
-    if (filters.platform) url.searchParams.append("platform", filters.platform);
+        const url = `http://localhost:4000/games${params.toString() ? '?' + params.toString() : ''}`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        setGames(data);
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
+      }
+    };
 
-    const res = await fetch(url);
-    const data = await res.json();
-    setGames(data);
-  };
+    const timeoutId = setTimeout(() => {
+      fetchGames();
+    }, 300);
 
-  const onSearch = (query) => {
-    setCurrentQuery(query);
-    searchGames(query, currentFilters);
-  };
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
-  const onFilter = (key, value) => {
-    const newFilters = { ...currentFilters, [key]: value };
-    setCurrentFilters(newFilters);
-    searchGames(currentQuery, newFilters);
-  };
+  if (loading) {
+    return <p style={{ textAlign: 'center', padding: '2rem' }}>Loading games...</p>;
+  }
 
   return (
     <div>
-      <h2>All Games</h2>
-      <SearchBar onSearch={onSearch} />
-      <Filters onFilter={onFilter} />
+      <h1>All Games</h1>
+      
+      <SearchBar onSearch={setSearchTerm} />
 
-      <ul>
-        {games.map(g => (
-          <li key={g.game_id}>
-            <Link to={`/games/${g.game_id}`}>
-              {g.title} ({g.release_year})
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {games.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>
+            No games found
+          </p>
+        </div>
+      ) : (
+        <>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Showing {games.length} game{games.length !== 1 ? 's' : ''}
+          </p>
+          <div className="games-grid">
+            {games.map((game) => (
+              <Link to={`/games/${game.game_id}`} key={game.game_id} className="game-card">
+                <div className="game-cover">
+                  <div className="game-cover-placeholder">
+                    {game.title.charAt(0)}
+                  </div>
+                </div>
+                <div className="game-info">
+                  <h3 className="game-title">{game.title}</h3>
+                  <p className="game-developer">{game.developer_name || 'Unknown'}</p>
+                  <div className="game-footer">
+                    <span className="game-year">{game.release_year || 'N/A'}</span>
+                    <span className="rating-stars">
+                      ★ {game.avg_rating ? Number(game.avg_rating).toFixed(1) : 'N/A'}
+                    </span>
+                  </div>
+                  {/* ADD LibraryButton HERE */}
+                  <LibraryButton 
+                    gameId={game.game_id} 
+                    userId={currentUserId}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
