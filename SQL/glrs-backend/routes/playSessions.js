@@ -72,9 +72,22 @@ router.post('/start', async (req, res) => {
       return res.status(400).json({ error: 'Active session already exists' });
     }
     
-    // Generate new session_id
-    const countResult = await pool.query('SELECT COUNT(*) FROM play_sessions');
-    const newId = `P${String(parseInt(countResult.rows[0].count) + 1).padStart(3, '0')}`;
+    // Generate new session_id by finding the max numeric part
+    const maxIdResult = await pool.query(
+      `SELECT session_id FROM play_sessions 
+       WHERE session_id ~ '^P[0-9]+$'
+       ORDER BY CAST(SUBSTRING(session_id FROM 2) AS INTEGER) DESC 
+       LIMIT 1`
+    );
+    
+    let newId;
+    if (maxIdResult.rows.length > 0) {
+      const maxId = maxIdResult.rows[0].session_id;
+      const numPart = parseInt(maxId.substring(1)) + 1;
+      newId = `P${String(numPart).padStart(3, '0')}`;
+    } else {
+      newId = 'P001';
+    }
     
     const result = await pool.query(
       `INSERT INTO play_sessions (session_id, user_id, game_id, session_start) 
